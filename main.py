@@ -1,5 +1,8 @@
 from audioop import reverse
+from fileinput import filename
 import discord
+import os
+import re
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from discord.utils import get
@@ -19,31 +22,31 @@ async def on_ready():
 async def p(ctx):
     link = str(ctx.message.content).split(' ')[1]
 
-    url : str
-    videoId = ""
-    if (link.startswith("https://www.youtube.com/")):
-       
-
-        curChar = 'a'
-
-        i = len(link) - 1
-
-        while (curChar != '='):
-            curChar = link[i]
-            i -= 1
-            videoId += curChar
-    videoId = videoId[::-1]
-    videoId = videoId[1:]
-    print(videoId)
+    url = ""
     
-    url = "https://www.yt-download.org/api/button/mp3/" + videoId
+    if (link.startswith("https")):
+        videoId = ""
 
-    print(url)
+        regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+
+        match = regex.match(link)
+
+        videoId = match.group('id')
+
+        print("id: " + videoId)
+    
+        url = "https://www.yt-download.org/api/button/mp3/" + videoId
+    else:
+        url = link
+
+    print("url: " + url)
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     webpage = str(urlopen(req, timeout=10).read())
 
     index = webpage.rfind('https://www.yt-download.org')
     
+
+
     url = ""
     curChar = ' '
     while (curChar != '"'):
@@ -53,6 +56,11 @@ async def p(ctx):
 
     url = url[:-1]
     
+    opener = urllib.request.URLopener()
+    opener.addheader('User-Agent', 'Mozilla/5.0')
+    filename, headers = opener.retrieve(url, 'music.mp3')
+
+
     channel = ctx.message.author.voice.channel
     if not channel:
         await ctx.send("You are not connected to a voice channel")
@@ -64,7 +72,8 @@ async def p(ctx):
         voice = await channel.connect()
     source = FFmpegPCMAudio('music.mp3')
     player = voice.play(source)
-
+    
+    #os.remove("music.mp3")
 
 def main():
     f = open("token.tok")
